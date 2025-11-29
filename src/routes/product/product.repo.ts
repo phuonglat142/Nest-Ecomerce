@@ -7,9 +7,9 @@ import {
   UpdateProductBodyType,
 } from './product.model';
 import { ALL_LANGUAGES_CODE, OrderByType, SortBy, SortByType } from 'src/shared/constants/other.constant';
-import { Prisma } from '@prisma/client';
 import { ProductType } from 'src/shared/models/shared-product.model';
 import { SerializeAll } from 'src/shared/decorators/serialize.decorator';
+import { Prisma } from 'src/generated/prisma/client';
 
 @Injectable()
 @SerializeAll()

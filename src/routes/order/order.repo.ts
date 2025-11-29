@@ -8,7 +8,6 @@ import {
   GetOrderListQueryType,
   GetOrderListResType,
 } from './order.model';
-import { Prisma } from '@prisma/client';
 import {
   CannotCancelOrderException,
   NotFoundCartItemException,
@@ -24,6 +23,7 @@ import { OrderProducer } from './order.producer';
 import { VersionConflictException } from 'src/shared/error';
 import { redlock } from 'src/shared/redis';
 import { SerializeAll } from 'src/shared/decorators/serialize.decorator';
+import { Prisma } from 'src/generated/prisma/client';
 @Injectable()
 @SerializeAll()
 export class OrderRepository {

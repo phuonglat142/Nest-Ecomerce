@@ -1,6 +1,6 @@
-import { Prisma } from '@prisma/client';
 import { randomInt } from 'crypto';
 import path from 'path';
+import { Prisma } from 'src/generated/prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 
 //Type predicate: Dự đoán kiểu dữ liệu

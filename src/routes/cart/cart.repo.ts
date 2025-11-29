@@ -17,9 +17,9 @@ import {
   UpdateCartItemBodyType,
 } from './cart.model';
 import { ALL_LANGUAGES_CODE } from 'src/shared/constants/other.constant';
-import { Prisma } from '@prisma/client';
 import { isNotFoundPrismaError } from 'src/shared/helper';
 import { SerializeAll } from 'src/shared/decorators/serialize.decorator';
+import { Prisma } from 'src/generated/prisma/client';
 
 @Injectable()
 @SerializeAll()

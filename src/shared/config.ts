@@ -14,6 +14,7 @@ if (!fs.existsSync(path.resolve('.env'))) {
 }
 
 const configSchema = zod.object({
+  DATABASE_URL: zod.string(),
   ACCESS_TOKEN_SECRET: zod.string(),
   ACCESS_TOKEN_EXPIRES_IN: zod.string(),
   REFRESH_TOKEN_SECRET: zod.string(),
