@@ -14,7 +14,7 @@ import { AuthRepository } from './auth.repo';
 import { SharedUserRepository } from 'src/shared/repositories/shared-user.repo';
 import { addMilliseconds } from 'date-fns';
 import envConfig from 'src/shared/config';
-import ms from 'ms';
+import ms, { StringValue } from 'ms';
 import { TypeOfVerifycationCode, TypeOfVerifycationCodeType } from 'src/shared/constants/auth.constant';
 import { EmailService } from 'src/shared/services/email.service';
 import { AccessTokenPayloadCreate } from 'src/shared/types/jwt.type';
@@ -126,7 +126,7 @@ export class AuthService {
       email: body.email,
       code,
       type: body.type,
-      expiresAt: addMilliseconds(new Date(), ms(envConfig.OTP_EXPIRES_IN)).toISOString(),
+      expiresAt: addMilliseconds(new Date(), ms(envConfig.OTP_EXPIRES_IN as StringValue)).toISOString(),
     });
 
     //3. gửi mã OTP
@@ -206,12 +206,14 @@ export class AuthService {
 
   async generateTokens({ userId, deviceId, roleId, roleName }: AccessTokenPayloadCreate) {
     const [accessToken, refreshToken] = await Promise.all([
+      // eslint-disable-next-line @typescript-eslint/await-thenable
       this.tokenService.signAccessToken({
         userId,
         deviceId,
         roleId,
         roleName,
       }),
+      // eslint-disable-next-line @typescript-eslint/await-thenable
       this.tokenService.signRefreshToken({
         userId,
       }),
@@ -310,7 +312,7 @@ export class AuthService {
   }
 
   async forgotPassword(body: ForgotPasswordBodyType) {
-    const { email, code, newPassword } = body;
+    const { email, newPassword } = body;
     //1. Kiểm tra xem email đã tồn tại trong database chưa
     const user = await this.sharedUserRepository.findUnique({ email });
 
