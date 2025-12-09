@@ -5,22 +5,19 @@ import { RoleName } from 'src/shared/constants/role.constant';
 import { PrismaService } from 'src/shared/services/prisma.service';
 
 const SellerModule = ['AUTH', 'MEDIA', 'MANAGE-PRODUCT', 'PRODUCT-TRANSLATION', 'PROFILE', 'CART', 'ORDERS', 'REVIEWS'];
-const clientModule = ['AUTH', 'MEDIA', 'PROFILE', 'CART', 'ORDERS', 'REVIEWS'];
-
+const ClientModule = ['AUTH', 'MEDIA', 'PROFILE', 'CART', 'ORDERS', 'REVIEWS'];
 const prisma = new PrismaService();
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  await app.listen(3000);
+  await app.listen(3010);
   const server = app.getHttpAdapter().getInstance();
   const router = server.router;
-
-  const permissionInDb = await prisma.permission.findMany({
+  const permissionsInDb = await prisma.permission.findMany({
     where: {
       deletedAt: null,
     },
   });
-
   const availableRoutes: { path: string; method: keyof typeof HTTPMethod; name: string; module: string }[] =
     router.stack
       .map((layer) => {
@@ -28,7 +25,6 @@ async function bootstrap() {
           const path = layer.route?.path;
           const method = String(layer.route?.stack[0].method).toUpperCase() as keyof typeof HTTPMethod;
           const moduleName = String(path.split('/')[1]).toUpperCase();
-
           return {
             path,
             method,
@@ -37,26 +33,23 @@ async function bootstrap() {
           };
         }
       })
-      .filter((item) => item !== undefined);
-
-  //Tạo object permission inDbMap với key là [method-path]
-  const permissionInDbMap: Record<string, (typeof permissionInDb)[0]> = permissionInDb.reduce((acc, item) => {
+      .filter((item) => item !== undefined && Object.keys(HTTPMethod).includes(item.method));
+  // Tạo object permissionInDbMap với key là [method-path]
+  const permissionInDbMap: Record<string, (typeof permissionsInDb)[0]> = permissionsInDb.reduce((acc, item) => {
     acc[`${item.method}-${item.path}`] = item;
     return acc;
   }, {});
-
-  //Tạo object availableRoutesMap với key là [method-path]
+  // Tạo object availableRoutesMap với key là [method-path]
   const availableRoutesMap: Record<string, (typeof availableRoutes)[0]> = availableRoutes.reduce((acc, item) => {
     acc[`${item.method}-${item.path}`] = item;
     return acc;
   }, {});
 
-  //Tìm permission trong database mà không có trong availableRoutes
-  const permissionsToDelete = permissionInDb.filter((item) => {
+  // Tìm permissions trong database mà không tồn tại trong availableRoutes
+  const permissionsToDelete = permissionsInDb.filter((item) => {
     return !availableRoutesMap[`${item.method}-${item.path}`];
   });
-
-  //Xóa permission không còn trong availableRoutes
+  // Xóa permissions không tồn tại trong availableRoutes
   if (permissionsToDelete.length > 0) {
     const deleteResult = await prisma.permission.deleteMany({
       where: {
@@ -65,73 +58,55 @@ async function bootstrap() {
         },
       },
     });
-
-    console.log('Deleted permission', deleteResult.count);
+    console.log('Deleted permissions:', deleteResult.count);
   } else {
-    console.log('No permission to delete');
+    console.log('No permissions to delete');
   }
-
-  //Tìm routes mà không tồn tại trong permissionInDb
+  // Tìm routes mà không tồn tại trong permissionsInDb
   const routesToAdd = availableRoutes.filter((item) => {
     return !permissionInDbMap[`${item.method}-${item.path}`];
   });
-
-  //Thêm các routes này dưới dạng permission database
+  // Thêm các routes này dưới dạng permissions database
   if (routesToAdd.length > 0) {
-    const permissionToAdd = await prisma.permission.createMany({
+    const permissionsToAdd = await prisma.permission.createMany({
       data: routesToAdd,
       skipDuplicates: true,
     });
-
-    console.log('Added permission', permissionToAdd.count);
+    console.log('Added permissions:', permissionsToAdd.count);
   } else {
-    console.log('No permission to add');
+    console.log('No permissions to add');
   }
 
-  // Lấy lại permissions trong database sau khi thêm mới hoặc bị xóa
-  const updatedPermissionInDb = await prisma.permission.findMany({
+  // Lấy lại permissions trong database sau khi thêm mới (hoặc bị xóa)
+  const updatedPermissionsInDb = await prisma.permission.findMany({
     where: {
       deletedAt: null,
     },
   });
-
-  const adminPermissionIds = updatedPermissionInDb.map((item) => ({ id: item.id }));
-
-  const sellerPermissionIds = updatedPermissionInDb
+  const adminPermissionIds = updatedPermissionsInDb.map((item) => ({ id: item.id }));
+  const sellerPermissionIds = updatedPermissionsInDb
     .filter((item) => SellerModule.includes(item.module))
-    .map((item) => ({
-      id: item.id,
-    }));
-
-  const clientPermissionIds = updatedPermissionInDb
-    .filter((item) => clientModule.includes(item.module))
-    .map((item) => ({
-      id: item.id,
-    }));
+    .map((item) => ({ id: item.id }));
+  const clientPermissionIds = updatedPermissionsInDb
+    .filter((item) => ClientModule.includes(item.module))
+    .map((item) => ({ id: item.id }));
 
   await Promise.all([
     updateRole(adminPermissionIds, RoleName.Admin),
     updateRole(sellerPermissionIds, RoleName.Seller),
     updateRole(clientPermissionIds, RoleName.Client),
   ]);
-
   process.exit(0);
 }
 
-const updateRole = async (
-  permissionIds: {
-    id: number;
-  }[],
-  roleName: string,
-) => {
-  // Cập nhật lại các permissions trong Role
+const updateRole = async (permissionIds: { id: number }[], roleName: string) => {
+  // Cập nhật lại các permissions trong Admin Role
   const role = await prisma.role.findFirstOrThrow({
     where: {
       name: roleName,
       deletedAt: null,
     },
   });
-
   await prisma.role.update({
     where: {
       id: role.id,
@@ -143,5 +118,4 @@ const updateRole = async (
     },
   });
 };
-
 bootstrap();
